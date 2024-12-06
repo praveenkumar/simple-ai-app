@@ -1,0 +1,76 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  name: ai-demo
+spec: {}
+status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-app
+  namespace: ai-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:scc:privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+- kind: ServiceAccount
+  name: ai-app
+  namespace: ai-demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    app: ai-app
+  name: ai-app
+  namespace: ai-demo
+spec:
+  containers:
+  - image: quay.io/redhatai/granite-3-8b-instruct:latest
+    name: ai-appA
+    args: ["-s"]
+    ports:
+    - containerPort: 8080
+    resources: {}
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /dev/dri
+      name: quicksync
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  serviceAccountName: ai-app
+  volumes:
+  - name: quicksync
+    hostPath: 
+      path: /dev/dri
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: ai-app
+  name: ai-app
+  namespace: ai-demo
+spec:
+  ports:
+  - name: "8080"
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: ai-app
+  type: ClusterIP
+
